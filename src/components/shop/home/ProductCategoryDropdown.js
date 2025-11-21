@@ -2,7 +2,7 @@ import React, { Fragment, useContext, useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import { HomeContext } from "./index";
 import { getAllCategory } from "../../admin/categories/FetchApi";
-import { getAllProduct, productByPrice } from "../../admin/products/FetchApi";
+import { getAllProduct } from "../../admin/products/FetchApi";
 import "./style.css";
 
 const apiURL = process.env.REACT_APP_API_URL;
@@ -60,44 +60,53 @@ const CategoryList = () => {
 
 const FilterList = () => {
   const { data, dispatch } = useContext(HomeContext);
-  const [range, setRange] = useState(0);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [allProducts, setAllProducts] = useState(null);
 
-  const rangeHandle = (e) => {
-    setRange(e.target.value);
-    fetchData(e.target.value);
-  };
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
 
-  const fetchData = async (price) => {
-    if (price === "all") {
-      try {
-        let responseData = await getAllProduct();
-        if (responseData && responseData.Products) {
-          dispatch({ type: "setProducts", payload: responseData.Products });
-        }
-      } catch (error) {
-        console.log(error);
+  const fetchAllProducts = async () => {
+    try {
+      let responseData = await getAllProduct();
+      if (responseData && responseData.Products) {
+        setAllProducts(responseData.Products);
       }
-    } else {
-      dispatch({ type: "loading", payload: true });
-      try {
-        setTimeout(async () => {
-          let responseData = await productByPrice(price);
-          if (responseData && responseData.Products) {
-            console.log(responseData.Products);
-            dispatch({ type: "setProducts", payload: responseData.Products });
-            dispatch({ type: "loading", payload: false });
-          }
-        }, 700);
-      } catch (error) {
-        console.log(error);
-      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  const closeFilterBar = () => {
-    fetchData("all");
-    dispatch({ type: "filterListDropdown", payload: !data.filterListDropdown });
-    setRange(0);
+  const handleFilter = () => {
+    if (!allProducts) {
+      return;
+    };
+
+    const min = minPrice === "" ? 0 : parseFloat(minPrice);
+    const max = maxPrice === "" ? Infinity : parseFloat(maxPrice);
+
+    if (min < 0 || max < 0 || (maxPrice !== "" && min > max)) {
+      return;
+    }
+
+    const filtered = allProducts.filter((item) => {
+      const price = parseFloat(item.pPrice);
+      console.log(price >= min, price <= max, price, min, max);
+      
+      return price >= min && price <= max;
+    });
+
+    dispatch({ type: "setProducts", payload: filtered });
+  };
+
+  const resetFilterBar = () => {
+    setMinPrice("");
+    setMaxPrice("");
+    if (allProducts) {
+      dispatch({ type: "setProducts", payload: allProducts });
+    }
   };
 
   return (
@@ -106,23 +115,44 @@ const FilterList = () => {
       <div className="w-full flex flex-col">
         <div className="font-medium py-2">Filter by price</div>
         <div className="flex justify-between items-center">
-          <div className="flex flex-col space-y-2  w-2/3 lg:w-2/4">
-            <label htmlFor="points" className="text-sm">
-              Price (between 0 and 10$):{" "}
-              <span className="font-semibold text-yellow-700">{range}.00$</span>{" "}
-            </label>
-            <input
-              value={range}
-              className="slider"
-              type="range"
-              id="points"
-              min="0"
-              max="1000"
-              step="10"
-              onChange={(e) => rangeHandle(e)}
-            />
+          <div className="flex items-center space-x-3 w-2/3 lg:w-3/4">
+            <div className="flex flex-col">
+              <label htmlFor="minPrice" className="text-sm mb-1">
+                Min Price ($)
+              </label>
+              <input
+                id="minPrice"
+                type="number"
+                min="0"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder="0"
+                className="border border-gray-300 rounded px-3 py-2 w-24 md:w-32 focus:outline-none focus:border-yellow-500"
+              />
+            </div>
+            <span className="text-gray-500 mt-6">-</span>
+            <div className="flex flex-col">
+              <label htmlFor="maxPrice" className="text-sm mb-1">
+                Max Price ($)
+              </label>
+              <input
+                id="maxPrice"
+                type="number"
+                min="0"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder="∞"
+                className="border border-gray-300 rounded px-3 py-2 w-24 md:w-32 focus:outline-none focus:border-yellow-500"
+              />
+            </div>
+            <button
+              onClick={handleFilter}
+              className="mt-6 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium"
+            >
+              Apply
+            </button>
           </div>
-          <div onClick={(e) => closeFilterBar()} className="cursor-pointer">
+          <div className="cursor-pointer" onClick={resetFilterBar}>
             <svg
               className="w-8 h-8 text-gray-700 hover:bg-gray-200 rounded-full p-1"
               fill="none"
@@ -174,9 +204,8 @@ const Search = () => {
     }
   };
 
-  const closeSearchBar = () => {
-    dispatch({ type: "searchDropdown", payload: !data.searchDropdown });
-    fetchData();
+  const clearSearchBar = async () => {
+    await fetchData();
     dispatch({ type: "setProducts", payload: productArray });
     setSearch("");
   };
@@ -194,7 +223,7 @@ const Search = () => {
         type="text"
         placeholder="Search products..."
       />
-      <div onClick={(e) => closeSearchBar()} className="cursor-pointer">
+      <div onClick={(e) => clearSearchBar()} className="cursor-pointer">
         <svg
           className="w-8 h-8 text-gray-700 hover:bg-gray-200 rounded-full p-1"
           fill="none"

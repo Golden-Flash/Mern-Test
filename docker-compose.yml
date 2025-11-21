@@ -1,0 +1,15 @@
+name: 'MERN Test'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: d705dd8621633c08e4aa
+      MONGO_INITDB_DATABASE: ecommerce
+    ports:
+    - 27017:27017
+    volumes:
+      - ./docker-data:/data/db

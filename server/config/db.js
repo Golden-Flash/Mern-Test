@@ -1,7 +1,9 @@
-const mongoose = require("mongoose");
+const { config } = require('dotenv');
+config()
+
 exports.connectDB = (mongoose) => {
   try {
-    mongoose.connect("mongodb://localhost:27017/ecommerce", {
+    mongoose.connect(process.env.DATABASE, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       useCreateIndex: true,
