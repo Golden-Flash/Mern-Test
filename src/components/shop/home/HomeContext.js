@@ -21,13 +21,11 @@ export const homeReducer = (state, action) => {
         ...state,
         categoryListDropdown: false,
         filterListDropdown: action.payload,
-        searchDropdown: false,
       };
     case "searchDropdown":
       return {
         ...state,
         categoryListDropdown: false,
-        filterListDropdown: false,
         searchDropdown: action.payload,
       };
     case "setProducts":
@@ -41,10 +39,11 @@ export const homeReducer = (state, action) => {
         products:
           action.productArray &&
           action.productArray.filter((item) => {
-            if (
-              item.pName.toUpperCase().indexOf(action.payload.toUpperCase()) !==
-              -1
-            ) {
+            const searchTerm = action.payload.toUpperCase();
+            const nameMatch = item.pName.toUpperCase().includes(searchTerm);
+            const descMatch = item.pDescription && item.pDescription.toUpperCase().includes(searchTerm);
+
+            if (nameMatch || descMatch) {
               return item;
             }
             return null;
